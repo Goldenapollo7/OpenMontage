@@ -192,6 +192,20 @@ def test_readme_windows_block_clones_and_cds_into_the_clone():
     assert "scripts\\setup.py" in block
 
 
+def test_readme_documents_a_keyfree_verification_step():
+    """After install, users need a 'did it work?' step that can't cost money.
+
+    The zero-key demo render is that step; it must be reachable without `make`.
+    """
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    assert "### Verify It Works (no API keys needed)" in readme
+    assert "python render_demo.py" in readme
+    assert "projects\\demos\\renders" in readme
+    # Remotion downloads its browser on first render — say so rather than
+    # letting a silent download look like a hang.
+    assert "first" in readme.lower() and "headless" in readme.lower()
+
+
 def test_readme_troubleshooting_covers_wrong_directory_symptoms():
     """These are the real errors users hit, verbatim."""
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")

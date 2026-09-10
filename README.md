@@ -159,11 +159,47 @@ cache, and creates `.env` from `.env.example`.
 > in this version`) — they were only added in PowerShell 7. One command per line works
 > in every shell: PowerShell, CMD, bash, zsh, and fish.
 
-Open the project in your AI coding assistant and tell it what you want:
+### Verify It Works (no API keys needed)
+
+Render a demo video straight from the checked-in Remotion components — no API key and no
+pipeline involved, so it's the fastest way to prove the toolchain works:
+
+```bash
+# macOS / Linux:
+make demo
+
+# Windows (from inside the clone: C:\OpenMontage):
+python render_demo.py --list          # see the three available demos
+python render_demo.py world-in-numbers
+```
+
+Renders land in `projects\demos\renders\` (`projects/demos/renders/` on macOS/Linux)
+as `.mp4` files. Note: on the **first** render Remotion downloads its own headless
+browser (over 100 MB, one time) — after that, rendering is fully local and free.
+
+Separately, check the system FFmpeg the production pipeline uses for audio, muxing, and
+subtitles: `ffmpeg -version`. Remotion ships its own encoder, so a demo can succeed even
+if your FFmpeg is missing — the full pipeline cannot.
+
+### Open It In Your AI Coding Assistant
+
+Point your assistant at the project folder — that's the whole "app":
+
+```powershell
+cd C:\OpenMontage
+claude          # Claude Code; or open the folder in Cursor / Copilot / Codex / Windsurf
+```
+
+Then describe the video you want:
 
 ```
-"Make a 60-second animated explainer about how neural networks learn"
+Make a 60-second animated explainer about how neural networks learn.
 ```
+
+The agent runs preflight (showing which tools and providers you actually have), proposes
+a plan with cost estimates, asks for your approval at checkpoints, then executes the
+pipeline stages and self-reviews the render. Project artifacts, assets, and the final
+file live under `projects\<project-slug>\`.
 
 Or if you want the real-footage path:
 
