@@ -25,6 +25,7 @@ import ast
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -226,6 +227,27 @@ def test_setup_script_messages_never_hand_out_and_and_chains():
         "setup output is pasted by Windows users too; use one command per line:\n"
         + "\n".join(offenders)
     )
+
+
+def test_setup_script_runs_from_any_directory():
+    """`python C:\\path\\to\\OpenMontage\\scripts\\setup.py` must work anywhere.
+
+    Windows users often sit in C:\\Windows or their home directory; the script
+    resolves the repo from its own location and runs npm in remotion-composer/.
+    """
+    with tempfile.TemporaryDirectory() as elsewhere:
+        proc = subprocess.run(
+            [sys.executable, str(SETUP_SCRIPT), "--dry-run",
+             "--skip-piper", "--skip-hyperframes", "--skip-env"],
+            cwd=elsewhere, capture_output=True, text=True, timeout=180,
+        )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    out = proc.stdout
+    assert str(REPO_ROOT / "remotion-composer") in out, (
+        "npm install must be directed at <repo>/remotion-composer, never at "
+        "whatever directory the user happens to be in"
+    )
+    assert "requirements.txt" in out
 
 
 def test_setup_script_help_works():

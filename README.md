@@ -133,6 +133,11 @@ python scripts\setup.py
 # or, if `python` is not on PATH:  py -3 scripts\setup.py
 ```
 
+The script locates the repo from its own path, so it works from any directory —
+`python C:\OpenMontage\scripts\setup.py` is fine even while you sit in `C:\Windows`.
+It runs `pip` for the Python side and `npm install` inside `remotion-composer\`, never
+in whatever folder your terminal happens to be in.
+
 Both paths run the same setup script (`scripts/setup.py`): it checks your toolchain
 (Python / Node / npm / FFmpeg), installs the Python dependencies, runs `npm install`
 for the Remotion composer, installs free offline Piper TTS, warms the HyperFrames npx
@@ -164,7 +169,7 @@ That's it. The agent researches your topic with live web search, generates AI im
 <details>
 <summary><strong>Prefer to run the individual steps yourself?</strong></summary>
 
-Run them **one at a time** — this works in PowerShell, CMD, bash, and zsh alike:
+Run them **one at a time, from inside the cloned `OpenMontage` folder** — this works in PowerShell, CMD, bash, and zsh alike. Note that `npm install` belongs in `remotion-composer\`, not the repo root:
 
 ```bash
 python -m pip install -r requirements.txt
@@ -192,7 +197,9 @@ Then copy `.env.example` to `.env` (the file is gitignored, so your keys never s
 |---------|-----|
 | `The token '&&' is not a valid statement separator in this version` | You're on PowerShell 5.1 (the Windows default). Put each command on its own line, or run `python scripts\setup.py`. `&&` only works in PowerShell 7+. |
 | `python` opens the Microsoft Store, or `python` is not recognized | Use `py -3 scripts\setup.py`, or install Python from [python.org](https://www.python.org/downloads/) with **"Add python.exe to PATH"** ticked, then reopen the terminal. |
-| `npm install` fails with `ERR_INVALID_ARG_TYPE` | Use `npx --yes npm install`. `scripts/setup.py` already retries this automatically. |
+| `npm install` fails with `ERR_INVALID_ARG_TYPE` | Use `npx --yes npm install` **from inside `remotion-composer\`**. `scripts/setup.py` already retries this automatically. |
+| `npm error ENOENT ... Could not read package.json` (e.g. `C:\Windows\package.json`) | npm was run outside the project — `npm install` only works inside the cloned repo's `remotion-composer\` folder (or anywhere, via `python scripts\setup.py`, which picks the right folder for you). |
+| `can't open file 'scripts\setup.py'` / `No such file or directory` | You're not in the cloned repo yet. `cd` into the folder that contains `README.md` and `requirements.txt`, or pass the full path: `python C:\OpenMontage\scripts\setup.py`. |
 | `.\setup.ps1 cannot be loaded because running scripts is disabled on this system` | Run `powershell -ExecutionPolicy Bypass -File .\setup.ps1`, or use `setup.cmd` instead. |
 | `ffmpeg` is not recognized | `winget install ffmpeg` (or `choco install ffmpeg`), then reopen the terminal. |
 | Setup or rendering fails with strange path errors | Clone to a short path without spaces — `C:\OpenMontage`, not `C:\Users\Your Name\My Projects\...`. npm/Remotion/ffmpeg toolchains break on spaces and non-ASCII characters. |

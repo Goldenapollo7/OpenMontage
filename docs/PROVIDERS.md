@@ -519,15 +519,18 @@ These providers run entirely on your machine. No network, no API key, no cost. S
 #### Setup
 
 ```bash
-# Included in make setup, or install manually:
+# Included in make setup, or install manually (from the repo root):
 cd remotion-composer
 npm install
 cd ..
 ```
 
 Run those commands one per line — `cd remotion-composer && npm install && cd ..` is a
-parser error in PowerShell 5.1, which ships with Windows. On Windows:
-`python scripts\setup.py` installs the Python side and the Remotion composer together.
+parser error in PowerShell 5.1, which ships with Windows. `npm install` must run inside
+`remotion-composer/`, never in the repo root (that fails with
+`Could not read package.json` — and if your terminal is in `C:\Windows`, the error even
+mentions `C:\Windows\package.json`). On Windows: `python scripts\setup.py` installs the
+Python side and the Remotion composer together, from any directory.
 
 Requires **Node.js 18+** and `npx`. The `remotion-composer/` project is included in the repo.
 
