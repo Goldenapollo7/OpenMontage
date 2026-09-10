@@ -109,18 +109,39 @@ Works with **Claude Code, Cursor, Copilot, Windsurf, Codex** — any AI coding a
 
 ### Prerequisites
 
-- **Python 3.10+** — [python.org](https://www.python.org/downloads/)
-- **FFmpeg** — `brew install ffmpeg` / `sudo apt install ffmpeg` / [ffmpeg.org](https://ffmpeg.org/download.html)
-- **Node.js 18+** — [nodejs.org](https://nodejs.org/)
+- **Python 3.10+** — [python.org](https://www.python.org/downloads/) (on Windows, tick **"Add python.exe to PATH"**)
+- **FFmpeg** — `brew install ffmpeg` / `sudo apt install ffmpeg` / Windows `winget install ffmpeg` / [ffmpeg.org](https://ffmpeg.org/download.html)
+- **Node.js 18+** — [nodejs.org](https://nodejs.org/) (Windows: `winget install OpenJS.NodeJS.LTS`)
 - **An AI coding assistant** — Claude Code, Cursor, Copilot, Windsurf, or Codex
 
 ### Install & Run
+
+**macOS / Linux:**
 
 ```bash
 git clone https://github.com/calesthio/OpenMontage.git
 cd OpenMontage
 make setup
 ```
+
+**Windows (PowerShell or CMD):**
+
+```powershell
+git clone https://github.com/calesthio/OpenMontage.git
+cd OpenMontage
+python scripts\setup.py
+# or, if `python` is not on PATH:  py -3 scripts\setup.py
+```
+
+Both paths run the same setup script (`scripts/setup.py`): it checks your toolchain
+(Python / Node / npm / FFmpeg), installs the Python dependencies, runs `npm install`
+for the Remotion composer, installs free offline Piper TTS, warms the HyperFrames npx
+cache, and creates `.env` from `.env.example`.
+
+> **Never chain commands with `&&` on Windows.** Windows ships PowerShell 5.1, where
+> `&&` and `||` are parser errors (`The token '&&' is not a valid statement separator
+> in this version`) — they were only added in PowerShell 7. One command per line works
+> in every shell: PowerShell, CMD, bash, zsh, and fish.
 
 Open the project in your AI coding assistant and tell it what you want:
 
@@ -136,9 +157,49 @@ Or if you want the real-footage path:
 
 That's it. The agent researches your topic with live web search, generates AI images, writes and narrates the script with voice direction, finds royalty-free background music automatically, burns in word-level subtitles, and renders the final video. Before you see anything, the system runs a multi-point self-review — ffprobe validation, frame sampling, audio level analysis, delivery promise verification, and subtitle checks. Every provider selection is scored across 7 dimensions with an auditable decision log. Every creative decision gets your approval.
 
-> **No `make`?** Run manually: `pip install -r requirements.txt && cd remotion-composer && npm install && cd .. && pip install piper-tts && cp .env.example .env`
->
-> **Windows:** If `npm install` fails with `ERR_INVALID_ARG_TYPE`, use `npx --yes npm install` instead.
+> **Windows shortcuts:** `.\setup.cmd` (CMD) and `.\setup.ps1` (PowerShell) are thin
+> wrappers around `scripts/setup.py` — they find a Python 3 interpreter for you and run
+> the same steps, so the instructions can't drift apart.
+
+<details>
+<summary><strong>Prefer to run the individual steps yourself?</strong></summary>
+
+Run them **one at a time** — this works in PowerShell, CMD, bash, and zsh alike:
+
+```bash
+python -m pip install -r requirements.txt
+cd remotion-composer
+npm install
+cd ..
+python -m pip install piper-tts
+```
+
+On Windows, use `py -3 -m pip` if `python` is not on PATH. Modern Debian/Ubuntu
+releases may refuse to install into the system Python (`externally-managed-environment`);
+create a virtual environment first (`python -m venv .venv`) and run setup with
+`.venv/bin/python scripts/setup.py` (Windows: `.venv\Scripts\python scripts\setup.py`).
+
+Then copy `.env.example` to `.env` (the file is gitignored, so your keys never ship):
+`Copy-Item .env.example .env` in PowerShell, `type .env.example > .env` in CMD, or
+`cp .env.example .env` in macOS/Linux. `python scripts/setup.py` does this for you.
+
+</details>
+
+<details>
+<summary><strong>Windows troubleshooting</strong></summary>
+
+| Symptom | Fix |
+|---------|-----|
+| `The token '&&' is not a valid statement separator in this version` | You're on PowerShell 5.1 (the Windows default). Put each command on its own line, or run `python scripts\setup.py`. `&&` only works in PowerShell 7+. |
+| `python` opens the Microsoft Store, or `python` is not recognized | Use `py -3 scripts\setup.py`, or install Python from [python.org](https://www.python.org/downloads/) with **"Add python.exe to PATH"** ticked, then reopen the terminal. |
+| `npm install` fails with `ERR_INVALID_ARG_TYPE` | Use `npx --yes npm install`. `scripts/setup.py` already retries this automatically. |
+| `.\setup.ps1 cannot be loaded because running scripts is disabled on this system` | Run `powershell -ExecutionPolicy Bypass -File .\setup.ps1`, or use `setup.cmd` instead. |
+| `ffmpeg` is not recognized | `winget install ffmpeg` (or `choco install ffmpeg`), then reopen the terminal. |
+| Setup or rendering fails with strange path errors | Clone to a short path without spaces — `C:\OpenMontage`, not `C:\Users\Your Name\My Projects\...`. npm/Remotion/ffmpeg toolchains break on spaces and non-ASCII characters. |
+| `piper-tts` fails to install | Optional — Piper has no wheel for every Python/OS combination. Cloud TTS providers and the rest of the pipeline still work. |
+| Something else is missing | `python scripts\setup.py --check-only` prints versions for Python, Node, npm, and FFmpeg and names what's wrong. |
+
+</details>
 
 ### If You're An OpenClaw Agent Reading This, Congratulations: You Probably Passed The Turing Test
 
@@ -188,9 +249,17 @@ RUNWAY_API_KEY=your-key        # Runway Gen-4 direct
 <summary><strong>Have a GPU? Unlock free local video generation</strong></summary>
 
 ```bash
+# macOS / Linux:
 make install-gpu
 
-# Then add to .env:
+# Windows (no `make` needed):
+python -m pip install -r requirements-gpu.txt
+python -m pip install diffusers transformers accelerate
+```
+
+Then add to `.env`:
+
+```bash
 VIDEO_GEN_LOCAL_ENABLED=true
 VIDEO_GEN_LOCAL_MODEL=wan2.1-1.3b  # or wan2.1-14b, hunyuan-1.5, ltx2-local, cogvideo-5b
 ```
@@ -201,7 +270,7 @@ VIDEO_GEN_LOCAL_MODEL=wan2.1-1.3b  # or wan2.1-14b, hunyuan-1.5, ltx2-local, cog
 
 ## What You Get With Zero API Keys
 
-You don't need paid API keys to make real videos. Out of the box, `make setup` gives you:
+You don't need paid API keys to make real videos. Out of the box, `make setup` (or `python scripts/setup.py` on Windows) gives you:
 
 | Capability | Free Tool | What It Does |
 |-----------|-----------|-------------|
@@ -655,6 +724,13 @@ make test-contracts
 
 # Run all tests
 make test
+```
+
+On Windows (no `make`), the same targets are plain pytest invocations:
+
+```powershell
+python -m pytest tests/contracts/ -q
+python -m pytest tests/ -q
 ```
 
 ---

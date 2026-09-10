@@ -1,6 +1,6 @@
 # Prompt Gallery
 
-Tested prompts that produce impressive videos. Copy any prompt into your AI coding assistant after running `make setup`.
+Tested prompts that produce impressive videos. Copy any prompt into your AI coding assistant after running `make setup` (macOS/Linux) or `python scripts/setup.py` (Windows).
 
 ## Zero-Key Demos (instant, no API keys)
 

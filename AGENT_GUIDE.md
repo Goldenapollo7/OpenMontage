@@ -343,6 +343,16 @@ When tools are `UNAVAILABLE` but can be fixed with simple configuration, **offer
 - If the user declines setup, proceed with the best available path — no nagging
 - Group related fixes (tools sharing the same env var dependency)
 
+**Installing the project itself:** `make setup` (macOS/Linux) and `python scripts/setup.py`
+(Windows) run the same script. Diagnose with `python scripts/setup.py --check-only` —
+it reports Python/Node/npm/FFmpeg versions and names what is missing.
+
+**Shell rules when giving a user commands:** never hand a user a command chained with
+`&&` or `||`. PowerShell 5.1 — the Windows default — rejects them at parse time
+("The token '&&' is not a valid statement separator in this version"); they only work
+in PowerShell 7+. One command per line works in every shell (PowerShell, CMD, bash,
+zsh, fish), and on Windows prefer `python scripts\setup.py` over `make`.
+
 ### Composition Runtimes (Inside video_compose)
 
 `video_compose` has **three** render engines / runtimes. They are parallel, not ranked — the choice is made at proposal and locked in `edit_decisions.render_runtime`. Check which are available:
@@ -675,3 +685,4 @@ The `.agents/skills/` directory is large. When you're not coming in through a to
 - Do not present a single unavailable tool in isolation. Always show the full capability picture: "X of Y providers configured for this capability."
 - Do not skip the Provider Menu at preflight. The user must see what they have AND what they could unlock.
 - Do not change provider, model, or render path without telling the user first and getting approval when the change is material.
+- Do not hand the user `&&`-chained shell commands. PowerShell 5.1 (the Windows default) rejects `&&` and `||` as parse errors. One command per line, or point them at `python scripts\setup.py`.

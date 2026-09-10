@@ -1,32 +1,18 @@
 PYTHON ?= python3
 
-.PHONY: setup install install-dev install-gpu test test-contracts lint clean preflight demo demo-list hyperframes-doctor hyperframes-warm
+.PHONY: setup setup-check install install-dev install-gpu test test-contracts lint clean preflight demo demo-list hyperframes-doctor hyperframes-warm
 
 # ---- One-command setup ----
 
+# The real work lives in scripts/setup.py so that Windows users get the exact
+# same steps without needing `make` — or a shell that understands `&&`.
+# `python scripts/setup.py` is the documented Windows path.
 setup:
-	@echo "==> Installing Python dependencies..."
-	$(PYTHON) -m pip install -r requirements.txt
-	@echo ""
-	@echo "==> Installing Remotion composer..."
-	cd remotion-composer && npm install
-	@echo ""
-	@echo "==> Installing free offline TTS (Piper)..."
-	$(PYTHON) -m pip install piper-tts || echo "  [skip] piper-tts install failed — TTS will use cloud providers instead"
-	@echo ""
-	@echo "==> Installing HyperFrames runtime (cache-warm via npx)..."
-	@echo "    Pulls the 'hyperframes' npm package into the local npx cache so the"
-	@echo "    first render doesn't pay a 30-60s cold-fetch penalty. ~20MB of disk."
-	@npx --yes hyperframes --version >/dev/null 2>&1 && echo "    HyperFrames CLI cached (npx)" || echo "  [skip] HyperFrames cache-warm failed — offline or npm unavailable; first render will fetch on demand"
-	@$(PYTHON) -c "from tools.video.hyperframes_compose import HyperFramesCompose; HyperFramesCompose._npm_resolve_cache=None; c=HyperFramesCompose()._runtime_check(); print(f'    HyperFrames runtime_available={c[\"runtime_available\"]}, npm={c.get(\"npm_package_version\") or c.get(\"npm_resolve_error\")}'); [print(f'    note: {r}') for r in c['reasons']]" || echo "  [skip] HyperFrames check failed — runtime can be set up later"
-	@echo ""
-	$(PYTHON) -c "import shutil, os; e=os.path.exists('.env'); shutil.copy('.env.example','.env') if not e else None; print('==> Created .env from .env.example — add your API keys there.' if not e else '==> .env already exists — skipping.')"
-	@echo ""
-	@echo "Done! Open this project in your AI coding assistant and start creating."
-	@echo "  Optional: add API keys to .env to unlock cloud providers."
-	@echo "  Optional: run 'make install-gpu' if you have an NVIDIA GPU."
-	@echo "  Optional: run 'make hyperframes-doctor' to fully validate the HyperFrames runtime."
-	@echo "  Optional: run 'make hyperframes-warm' anytime to refresh the npx cache to the latest hyperframes version."
+	@$(PYTHON) scripts/setup.py
+
+# Diagnose the toolchain (Python/Node/npm/ffmpeg) without installing anything.
+setup-check:
+	@$(PYTHON) scripts/setup.py --check-only
 
 # ---- Individual installs ----
 
