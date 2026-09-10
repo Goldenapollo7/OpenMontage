@@ -58,6 +58,11 @@ class ToolRegistry:
     def __init__(self) -> None:
         self._tools: dict[str, BaseTool] = {}
         self._discovered_packages: set[str] = set()
+        # Modules that failed to import during discovery, with the reason. A
+        # single tool with a missing optional dependency must not take down
+        # discovery: preflight runs before any provider is configured, and the
+        # earlier it crashes the less the agent can tell the user.
+        self._import_errors: dict[str, str] = {}
 
     def register(self, tool: BaseTool) -> None:
         """Register a tool instance."""
@@ -69,6 +74,39 @@ class ToolRegistry:
         """Clear registered tools and discovery state."""
         self._tools.clear()
         self._discovered_packages.clear()
+        self._import_errors.clear()
+
+    @staticmethod
+    def _missing_module_name(exc: ImportError) -> str:
+        """Return the module that is missing, for the registry's diagnostics.
+
+        `ModuleNotFoundError.name` gives it directly; a plain ImportError only
+        has the message, so fall back to parsing that.
+        """
+        name = getattr(exc, "name", None)
+        if name:
+            return name
+        message = str(exc)
+        for prefix in ("No module named ", "cannot import name "):
+            if prefix in message:
+                return message.split(prefix, 1)[1].strip().strip("'\"").split(" ")[0]
+        return message[:80]
+
+    def import_failures(self) -> dict[str, str]:
+        """Modules that could not be imported, mapped to a short reason.
+
+        Empty on a healthy install. When non-empty, the affected tools are
+        reported as unavailable rather than silently missing from preflight.
+        """
+        return dict(self._import_errors)
+
+    def _register_import_failure(self, module_name: str, exc: BaseException) -> None:
+        missing = (
+            self._missing_module_name(exc)
+            if isinstance(exc, ImportError)
+            else type(exc).__name__
+        )
+        self._import_errors[module_name] = missing
 
     def register_module(self, module: ModuleType) -> list[str]:
         """Register all concrete BaseTool subclasses defined in a module."""
@@ -127,7 +165,14 @@ class ToolRegistry:
         for module_info in pkgutil.walk_packages(package_paths, f"{package.__name__}."):
             if module_info.name.endswith(".base_tool") or module_info.name.endswith(".tool_registry"):
                 continue
-            module = importlib.import_module(module_info.name)
+            try:
+                module = importlib.import_module(module_info.name)
+            except Exception as exc:
+                # One tool's missing optional dependency (numpy, torch, …) must
+                # not abort the whole preflight — the agent still needs the rest
+                # of the menu, and import_failures() explains what was skipped.
+                self._register_import_failure(module_info.name, exc)
+                continue
             discovered.extend(self.register_module(module))
 
         self._discovered_packages.add(package_name)
@@ -365,6 +410,15 @@ class ToolRegistry:
             rc = hf_info.get("hyperframes_runtime") or {}
             for reason in rc.get("reasons") or []:
                 runtime_warnings.append(f"hyperframes: {reason}")
+
+        # Tool modules that failed to import (usually a missing optional
+        # dependency). Degraded, not fatal — but the agent must be told, or
+        # those capabilities look like they don't exist at all.
+        for module_name, missing in sorted(self._import_errors.items()):
+            runtime_warnings.append(
+                f"{module_name}: module not loaded ({missing}) — "
+                "install its dependency (pip install -r requirements.txt)"
+            )
 
         # Capabilities rollup (configured/total + provider lists).
         # When a provider has multiple tools (e.g. seedance-fal and

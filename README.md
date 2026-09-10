@@ -737,8 +737,15 @@ OpenMontage works with any AI coding assistant that can read files and execute P
 | **GitHub Copilot** | `COPILOT.md` + `.github/copilot-instructions.md` |
 | **Codex** | `CODEX.md` |
 | **Windsurf** | `.windsurfrules` |
+| **Open WebUI** | [`integrations/open-webui/`](integrations/open-webui/README.md) — paste-in Workspace Tool + system prompt |
 
 All platform files point to the shared `AGENT_GUIDE.md` (operating guide and agent contract) and `PROJECT_CONTEXT.md` (architecture reference).
+
+**Using a chat UI instead of a coding agent?** Open WebUI is supported through a
+[Workspace Tool + system prompt](integrations/open-webui/README.md) that gives the model a
+real shell in your clone — Open WebUI's built-in browser sandbox (Pyodide) cannot touch
+your project folder, so the tool is what makes production possible. Use a strong
+tool-calling model; the pipeline is a long multi-step workflow.
 
 > **Coming soon:** Local LLM support via **Ollama** and **LM Studio** — run the full production pipeline without any cloud LLM.
 
