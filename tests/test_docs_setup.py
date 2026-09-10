@@ -22,6 +22,7 @@ shell-agnostic:
 from __future__ import annotations
 
 import ast
+import importlib.util
 import re
 import subprocess
 import sys
@@ -60,6 +61,17 @@ class CodeBlock:
 
     def where(self) -> str:
         return f"{self.path.relative_to(REPO_ROOT)}:{self.start_line}"
+
+
+def _load_setup_module():
+    """Import scripts/setup.py as a module so its checks can be unit-tested."""
+    spec = importlib.util.spec_from_file_location("openmontage_setup", SETUP_SCRIPT)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    # dataclasses needs the module in sys.modules while the class body runs.
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def _doc_paths() -> list[Path]:
@@ -160,6 +172,36 @@ def test_readme_points_windows_users_at_the_cross_platform_script():
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     assert "python scripts\\setup.py" in readme
     assert "PowerShell 5.1" in readme  # explains why && is not used
+
+
+def test_readme_windows_block_clones_and_cds_into_the_clone():
+    """Clone + cd must be in the same block, or commands run in the wrong dir.
+
+    A fresh PowerShell opens in C:\\Windows\\system32; every relative path in
+    the install steps then fails.
+    """
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    start = readme.index("**Windows (PowerShell or CMD):**")
+    rest = readme[start:]
+    fence = "```powershell"
+    block = rest[rest.index(fence) + len(fence):]
+    block = block[: block.index("```")]
+
+    assert "git clone" in block, "the Windows block must include the clone step"
+    assert "cd C:\\OpenMontage" in block, "…and cd into it before running setup"
+    assert "scripts\\setup.py" in block
+
+
+def test_readme_troubleshooting_covers_wrong_directory_symptoms():
+    """These are the real errors users hit, verbatim."""
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    for symptom in (
+        "Could not open requirements file",   # pip, wrong cwd
+        "Cannot find path",                   # cd / Copy-Item, wrong cwd
+        "Could not read package.json",        # npm, wrong cwd
+        "C:\\Windows\\system32",              # the default PowerShell cwd
+    ):
+        assert symptom in readme, f"troubleshooting table should cover: {symptom}"
 
 
 # ------------------------------------------------------------------
@@ -283,6 +325,33 @@ def test_check_only_reports_toolchain():
     # way the report must name the checked tools.
     assert "Python" in proc.stdout
     assert "Node.js" in proc.stdout or "Node.js not found" in proc.stdout
+
+
+def test_setup_diagnoses_the_wrong_directory_instead_of_crashing(tmp_path, monkeypatch, capsys):
+    """The most common Windows report: commands run outside the clone.
+
+    Symptom on the user's side: `Could not open requirements file`, `Cannot
+    find path ...\\remotion-composer`, `Cannot find path ...\\.env.example`.
+    Setup must name the directory it inspected and how to get to the repo.
+    """
+    module = _load_setup_module()
+    monkeypatch.setattr(module, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(module, "COMPOSER_DIR", tmp_path / "remotion-composer")
+
+    setup = module.Setup()
+    setup.preflight()
+    out = capsys.readouterr().out
+
+    assert setup.steps["preflight"].status == module.FAIL
+    assert "complete OpenMontage checkout" in out
+    assert str(tmp_path) in out, "must show the directory setup inspected"
+    assert "requirements.txt" in out and "remotion-composer" in out
+    assert "git clone" in out
+
+
+def test_setup_passes_the_checkout_check_in_this_repo():
+    module = _load_setup_module()
+    assert module.Setup().missing_checkout_files() == []
 
 
 # ------------------------------------------------------------------

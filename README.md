@@ -127,16 +127,27 @@ make setup
 **Windows (PowerShell or CMD):**
 
 ```powershell
-git clone https://github.com/calesthio/OpenMontage.git
-cd OpenMontage
+# 1) get the code — clone to a short path without spaces
+git clone https://github.com/calesthio/OpenMontage.git C:\OpenMontage
+
+# 2) move into the clone, then run setup
+cd C:\OpenMontage
 python scripts\setup.py
 # or, if `python` is not on PATH:  py -3 scripts\setup.py
 ```
 
-The script locates the repo from its own path, so it works from any directory —
-`python C:\OpenMontage\scripts\setup.py` is fine even while you sit in `C:\Windows`.
-It runs `pip` for the Python side and `npm install` inside `remotion-composer\`, never
-in whatever folder your terminal happens to be in.
+**Every command must run inside the cloned folder** — the one containing `README.md`,
+`requirements.txt`, and `remotion-composer\`. If you see `Could not open requirements
+file: 'requirements.txt'`, `Cannot find path ...\remotion-composer`, or `Cannot find
+path ...\.env.example`, your terminal is somewhere else (a fresh PowerShell opens in
+`C:\Windows\system32`): `cd` into the clone first, or just run
+`python C:\OpenMontage\scripts\setup.py` with the full path. That full-path form works
+from anywhere — setup resolves the repo from its own location and runs `npm install`
+inside `remotion-composer\`, never in whatever folder your terminal happens to be in.
+
+> **Tip:** in File Explorer, open the cloned folder, right-click inside it and choose
+> **Open in Terminal** (Windows 11) or *Shift+right-click → Open PowerShell window here*.
+> Then `python scripts\setup.py` works with no `cd` at all.
 
 Both paths run the same setup script (`scripts/setup.py`): it checks your toolchain
 (Python / Node / npm / FFmpeg), installs the Python dependencies, runs `npm install`
@@ -172,11 +183,23 @@ That's it. The agent researches your topic with live web search, generates AI im
 Run them **one at a time, from inside the cloned `OpenMontage` folder** — this works in PowerShell, CMD, bash, and zsh alike. Note that `npm install` belongs in `remotion-composer\`, not the repo root:
 
 ```bash
+# Windows (PowerShell) — start by moving into your clone:
+cd C:\OpenMontage
 python -m pip install -r requirements.txt
 cd remotion-composer
 npm install
 cd ..
 python -m pip install piper-tts
+Copy-Item .env.example .env
+
+# macOS / Linux:
+cd ~/OpenMontage
+python3 -m pip install -r requirements.txt
+cd remotion-composer
+npm install
+cd ..
+python3 -m pip install piper-tts
+cp .env.example .env
 ```
 
 On Windows, use `py -3 -m pip` if `python` is not on PATH. Modern Debian/Ubuntu
@@ -184,9 +207,8 @@ releases may refuse to install into the system Python (`externally-managed-envir
 create a virtual environment first (`python -m venv .venv`) and run setup with
 `.venv/bin/python scripts/setup.py` (Windows: `.venv\Scripts\python scripts\setup.py`).
 
-Then copy `.env.example` to `.env` (the file is gitignored, so your keys never ship):
-`Copy-Item .env.example .env` in PowerShell, `type .env.example > .env` in CMD, or
-`cp .env.example .env` in macOS/Linux. `python scripts/setup.py` does this for you.
+`.env` is gitignored, so your keys never ship. `python scripts/setup.py` (or
+`make setup`) does all of the above for you, including the `.env` copy.
 
 </details>
 
@@ -198,7 +220,9 @@ Then copy `.env.example` to `.env` (the file is gitignored, so your keys never s
 | `The token '&&' is not a valid statement separator in this version` | You're on PowerShell 5.1 (the Windows default). Put each command on its own line, or run `python scripts\setup.py`. `&&` only works in PowerShell 7+. |
 | `python` opens the Microsoft Store, or `python` is not recognized | Use `py -3 scripts\setup.py`, or install Python from [python.org](https://www.python.org/downloads/) with **"Add python.exe to PATH"** ticked, then reopen the terminal. |
 | `npm install` fails with `ERR_INVALID_ARG_TYPE` | Use `npx --yes npm install` **from inside `remotion-composer\`**. `scripts/setup.py` already retries this automatically. |
-| `npm error ENOENT ... Could not read package.json` (e.g. `C:\Windows\package.json`) | npm was run outside the project — `npm install` only works inside the cloned repo's `remotion-composer\` folder (or anywhere, via `python scripts\setup.py`, which picks the right folder for you). |
+| `Could not open requirements file: ... 'requirements.txt'` | You're not in the cloned repo. `cd` into the folder that contains `README.md` and `requirements.txt` (a fresh PowerShell starts in `C:\Windows\system32`), or use full paths: `python -m pip install -r C:\OpenMontage\requirements.txt`. |
+| `npm error ENOENT ... Could not read package.json` (e.g. `C:\Windows\system32\package.json`) | npm was run outside the project — `npm install` only works inside the cloned repo's `remotion-composer\` folder. `cd C:\OpenMontage\remotion-composer` first, or let `python C:\OpenMontage\scripts\setup.py` pick the right folder for you. |
+| `Cannot find path 'C:\WINDOWS\system32\remotion-composer'` or `...\.env.example` | Same cause: the terminal isn't inside the clone. `cd C:\OpenMontage` before running the command, or pass the full path. |
 | `can't open file 'scripts\setup.py'` / `No such file or directory` | You're not in the cloned repo yet. `cd` into the folder that contains `README.md` and `requirements.txt`, or pass the full path: `python C:\OpenMontage\scripts\setup.py`. |
 | `.\setup.ps1 cannot be loaded because running scripts is disabled on this system` | Run `powershell -ExecutionPolicy Bypass -File .\setup.ps1`, or use `setup.cmd` instead. |
 | `ffmpeg` is not recognized | `winget install ffmpeg` (or `choco install ffmpeg`), then reopen the terminal. |

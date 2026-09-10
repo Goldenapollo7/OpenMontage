@@ -42,6 +42,14 @@ COMPOSER_DIR = REPO_ROOT / "remotion-composer"
 ENV_FILE = REPO_ROOT / ".env"
 ENV_EXAMPLE = REPO_ROOT / ".env.example"
 
+# Files that only exist in a real clone — used to tell "wrong directory" apart
+# from "broken install".
+CHECKOUT_FILES = (
+    "requirements.txt",
+    "remotion-composer/package.json",
+    ".env.example",
+)
+
 PYTHON_FLOOR = (3, 10)          # README prerequisite
 REMOTION_NODE_FLOOR = 18        # README prerequisite ("Node.js 18+")
 HYPERFRAMES_NODE_FLOOR = 22     # tools/video/hyperframes_compose.py::_NODE_FLOOR_MAJOR
@@ -211,9 +219,38 @@ class Setup:
 
     # -- preflight ---------------------------------------------------------
 
+    def missing_checkout_files(self) -> list[str]:
+        """Repo-relative paths that a complete OpenMontage checkout must have.
+
+        Catches the most common Windows support report: commands pasted into a
+        terminal that is not sitting in the cloned project (``C:\\WINDOWS\\system32``
+        is a favorite), and zip downloads or partial clones.
+        """
+        return [
+            rel for rel in CHECKOUT_FILES if not (REPO_ROOT / rel).exists()
+        ]
+
     def preflight(self) -> None:
         _header("Checking your toolchain")
         s = self.step("preflight", "Toolchain check")
+
+        missing = self.missing_checkout_files()
+        if missing:
+            _line(FAIL, "This does not look like a complete OpenMontage checkout")
+            _note(f"setup is looking at: {REPO_ROOT}")
+            for rel in missing:
+                _note(f"missing: {REPO_ROOT / rel}")
+            _note("If that path is not where you cloned the project, run setup "
+                  "from the clone (the folder containing README.md and "
+                  "requirements.txt):")
+            _note("  cd C:\\OpenMontage        # or wherever you cloned it")
+            _note("  python scripts\\setup.py")
+            _note("Not cloned yet?")
+            _note("  git clone https://github.com/calesthio/OpenMontage.git "
+                  "C:\\OpenMontage")
+            s.status = FAIL
+            s.detail = f"missing {', '.join(missing)}"
+            return
 
         py = platform.python_version()
         if sys.version_info[:2] >= PYTHON_FLOOR:
