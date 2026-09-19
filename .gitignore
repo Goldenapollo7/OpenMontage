@@ -84,3 +84,6 @@ remotion-composer/public/*
 remotion-composer/public/demo-props/test-*
 remotion-composer/public/demo-props/talking-head-*
 remotion-composer/public/demo-props/caption-burn-*
+
+# Scratch source downloads for the Red Devilry promo (originals live in github.com/Goldenapollo7/Main)
+assets/reddevils/
